@@ -14,6 +14,10 @@
          </p>
       </div>
 
+      <div class="alert alert-danger col-8 offset-2" v-if="error !== ''">
+         {{ displayErrorText }}
+      </div>
+
       <Form
          @submit="submitData"
          :validation-schema="schema"
@@ -68,7 +72,10 @@
          </div>
          <div class="form-row mt-3">
             <div class="form-group col-md-8 offset-2">
-               <button class="btn bg-vue">Registrieren</button>
+               <button class="btn bg-vue">
+                  <span v-if="!isLoading">Registrieren</span>
+                  <span v-else class="spinner-border spinner-border-sm"></span>
+               </button>
             </div>
          </div>
       </Form>
@@ -95,7 +102,7 @@ export default {
          } else {
             return "Login";
          }
-      }
+      },
    },
 
    data() {
@@ -113,20 +120,52 @@ export default {
             .string()
             .oneOf([yup.ref("password")], "Passwörter stimmen nicht überein."),
       });
-      
+
       return {
          schema,
+         error: "",
+         isLoading: false,
       };
+   },
+
+   computed: {
+      displayErrorText() {
+         if (this.error !== "") {
+            if (this.error.includes("EMAIL_EXISTS")) {
+               return "Die E-Mail Adresse existiert bereits.";
+            } else {
+               return "Es ist ein unbekannter Fehler aufgetreten. Bitte versuchen Sie es noch einmal";
+            }
+         } else {
+            return "";
+         }
+      },
    },
 
    methods: {
       submitData(values) {
-         console.log(values);
+         this.isLoading = true;
+         this.error = "";
+         // console.log(values);
+         this.$store
+            .dispatch("signup", {
+               email: values.email,
+               password: values.password,
+            })
+            .then(() => {
+               this.isLoading = false;
+               this.changeComponent("Login");
+               // console.log(this.$store.state);
+            })
+            .catch((error) => {
+               this.error = error.message;
+               this.isLoading = false;
+            });
       },
-      
+
       changeComponent(componentName) {
-         this.$emit("change-component", { componentName })
-      }
+         this.$emit("change-component", { componentName });
+      },
    },
 };
 </script>

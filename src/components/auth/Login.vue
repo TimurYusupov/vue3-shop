@@ -8,10 +8,17 @@
          <h2>Jetzt Anmelden</h2>
          <p>
             oder
-            <a class="text-vue2" role="button" @click="changeComponent('Register')"
+            <a
+               class="text-vue2"
+               role="button"
+               @click="changeComponent('Register')"
                >erstellen Sie ein Konto.</a
             >
          </p>
+      </div>
+
+      <div class="alert alert-danger col-8 offset-2" v-if="error !== ''">
+         {{ displayErrorText }}
       </div>
 
       <Form
@@ -51,7 +58,10 @@
          </div>
          <div class="form-row mt-3">
             <div class="form-group col-md-8 offset-2">
-               <button class="btn bg-vue">Einloggen</button>
+               <button class="btn bg-vue">
+                  <span v-if="!isLoading">Einloggen</span>
+                  <span v-else class="spinner-border spinner-border-sm"></span>
+               </button>
             </div>
          </div>
       </Form>
@@ -73,7 +83,7 @@ export default {
 
    emits: {
       "change-component": (payload) => {
-         if (payload.componentName !== "Login") {
+         if (payload.componentName !== "Register") {
             return "";
          } else {
             return "Login";
@@ -93,15 +103,52 @@ export default {
             .required("Ein Passwort wird benötigt.")
             .min(6, "Das Passwort muss mindestens 6 Zeichen lang sein."),
       });
-      
+
       return {
          schema,
+         error: "",
+         isLoading: false,
       };
+   },
+
+   computed: {
+      displayErrorText() {
+         if (this.error !== "") {
+            if (this.error.includes("INVALID_PASSWORD")) {
+               return "Das Passwort ist nicht gültig.";
+            } else if (this.error.includes("EMAIL_NOT_FOUND")) {
+               return "E-Mail Adresse konnte nicht gefunden werden.";
+            } else {
+               return "Es ist ein unbekannter Fehler aufgetreten. Bitte versuchen Sie es noch einmal.";
+            }
+         } else {
+            return "";
+         }
+      },
    },
 
    methods: {
       submitData(values) {
-         console.log(values);
+         this.isLoading = true;
+         this.error = "";
+         // console.log(values);
+         this.$store
+            .dispatch("signin", {
+               email: values.email,
+               password: values.password,
+            })
+            .then(() => {
+               this.isLoading = false;
+               console.log("Login erfolgreich");
+               // Weiterleitung zum internen Bereich
+               // this.$router.push("/shop");
+               this.$router.push({ path: "/shop" });
+            })
+            .catch((error) => {
+               this.error = error.message;
+               this.isLoading = false; 
+               console.log(error);
+            })
       },
 
       changeComponent(componentName) {
